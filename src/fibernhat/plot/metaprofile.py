@@ -13,7 +13,7 @@ XLAB = {"dyad": "distance to dyad (bp)", "nuc": "distance to dyad (bp)", "tss": 
 
 def plot_quintile_profiles(prof: pd.DataFrame, summ: pd.DataFrame, out_prefix: str,
                            smooth_bp: int = 21, normalize: bool = True,
-                           formats=("png", "pdf"), dpi: int = 200, threshold_note: str = ""):
+                           formats=("png", "pdf"), dpi: int = 200, threshold_note: str = "", show_note: bool = False):
     plt = style.setup_mpl()
     labels = list(dict.fromkeys(summ.label))
     classes = list(dict.fromkeys(prof.site_class))
@@ -35,6 +35,7 @@ def plot_quintile_profiles(prof: pd.DataFrame, summ: pd.DataFrame, out_prefix: s
             if normalize:
                 ax.axhline(1, color="#8a8f96", lw=0.6)
             ax.tick_params(labelsize=8)
+            ax.spines[["top", "right"]].set_visible(False)   # as plot_quintile_pair.py L39
             if r == 0:
                 n = prof[(prof.site_class == cls)].n_sites.max()
                 ax.set_title(f"{TITLES.get(cls, cls)} (n={n:,})", fontsize=10)
@@ -44,7 +45,7 @@ def plot_quintile_profiles(prof: pd.DataFrame, summ: pd.DataFrame, out_prefix: s
                 ax.set_ylabel(f"{lab}\n" + ("m6A / quintile genome mean" if normalize else "m6A fraction"),
                               fontsize=8)
     axes[0][-1].legend(fontsize=7, frameon=False, title="per-read m6A quintile", title_fontsize=7)
-    if threshold_note:
+    if threshold_note and show_note:
         fig.text(0.99, 0.002, f"m6A call: {threshold_note}", ha="right", fontsize=6, color="grey")
     fig.tight_layout()
     paths = style.save(fig, out_prefix, formats, dpi)

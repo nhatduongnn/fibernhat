@@ -19,14 +19,15 @@ Built-in site sets (see `ref/README.md`):
 - `tf` / `tf:<Name>` (Rossi PWM-conformed peaks)
 
 ## Outputs
-- `<name>.png/pdf`: optional MNase V-plot, then one dot panel per sample, then the m6A/called-A profile (11 bp mean).
+- `<name>.png/pdf`, top to bottom (default `--panels mnase,fibers,counts,ratio`): MNase V-plot (if an MNase BAM is configured), one dot panel per sample, "Methylation pileup" counts, then "Methylated As / Possible As". Counts and ratio are unsmoothed, as in `process_aggregate_fiber_plot`; `--smooth N` adds an N bp rolling mean.
 - `<name>_profile.tsv`: per sample and position, n_mod, n_valid and m6a_frac.
 - `<name>_fibers.npz`: every (fiber, site) row with oriented methylated/called positions. Reload with `fibernhat.aggregate.SiteFibers.load`.
 
 ## Options
+- `--panels`: any subset and order of `mnase,fibers,counts,ratio`.
 - `--sort`:
-  - `shuffle` (default)
-  - `meth_in_win`: m6A fraction within ±100 bp
+  - `meth_in_win` (default, as in `aggregate_fiberplot_open_sites.py`): m6A fraction within ±100 bp, most methylated on top
+  - `shuffle`
   - `meth_frac`: whole window
   - `site`
 - `--max-rows` caps how many rows are drawn per sample. The profile always uses every fiber.

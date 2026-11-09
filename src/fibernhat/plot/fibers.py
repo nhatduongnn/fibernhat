@@ -1,4 +1,4 @@
-"""Raw single-molecule fiberplots: gene track + (MNase) + m6A pileup + fibers.
+"""Raw single-molecule fiberplots: gene track + (MNase) + fibers + m6A pileup (default order).
 
 Drawing conventions follow the paper figure modules
 (hmm_for_clustering_claude_code/scripts/fig2_panels.py, fig1_panels.py):
@@ -20,7 +20,7 @@ from . import style
 # --------------------------------------------------------------------------
 # ordering
 # --------------------------------------------------------------------------
-def order_fibers(fibers: List[Fiber], how: str = "start", seed: int = 0,
+def order_fibers(fibers: List[Fiber], how: str = "shuffle", seed: int = 0,
                  window: Optional[Tuple[int, int]] = None) -> List[int]:
     """Return row order (row 0 drawn at the TOP).
 
@@ -47,35 +47,46 @@ def order_fibers(fibers: List[Fiber], how: str = "start", seed: int = 0,
 # --------------------------------------------------------------------------
 # panels
 # --------------------------------------------------------------------------
-def draw_gene_track(ax, chrom: str, start1: int, end1: int, fontsize: float = 7):
+def draw_gene_track(ax, chrom: str, start1: int, end1: int, fontsize: float = 10,
+                    ylim: Tuple[float, float] = (-60, 118)):
     """SGD ORFs + TSS/PAS for [start1, end1] (1-based). Returns False if the
-    chromosome has no annotation."""
+    chromosome has no annotation. Box off, minor ticks cleared and ylim
+    (-60, 118) as in fig2_panels.draw_gene_track / build_tea1_plots.py."""
     from ..annotation import chrom_str_to_int, make_orf_annotation_plotter
     ci = chrom_str_to_int(chrom)
-    ax.set_xticks([]); ax.set_yticks([])
-    for sp in ax.spines.values():
-        sp.set_visible(False)
     if ci is None:
+        ax.set_xticks([]); ax.set_yticks([])
+        for sp in ax.spines.values():
+            sp.set_visible(False)
         ax.text(0.5, 0.5, f"no annotation for {chrom}", transform=ax.transAxes,
                 ha="center", va="center", fontsize=6, color="grey")
         return False
     p = make_orf_annotation_plotter()
     p.set_span_chrom((start1, end1), int(ci))
     p.plot_orf_annotations(ax, orf_classes=["Verified", "Uncharacterized"])
-    for t in ax.texts:
-        t.set_fontsize(fontsize)
+    if fontsize:
+        for t in ax.texts:
+            t.set_fontsize(fontsize)
     ax.set_xlim(start1, end1)
-    ax.set_xticks([]); ax.set_yticks([])
+    ax.set_ylim(*ylim)
+    ax.set_xticks([]); ax.set_xticks([], minor=True)
+    ax.set_yticks([]); ax.set_yticks([], minor=True)
+    for sp in ax.spines.values():
+        sp.set_visible(False)
     return True
 
 
 def draw_mnase(ax, mids, lens, start1, end1, max_len=300, lab_fs=style.LAB_FS,
-               tick_fs=style.TICK_FS):
-    style.plot_density_scatter(mids, lens, ax=ax, s=2, cmap="magma_r")
+               tick_fs=style.TICK_FS, s=3):
+    """KDE-coloured V-plot; y axis on the right, ticks 0/150/300 (fig2_panels
+    draw_mnase_scatter, build_tea1_plots.py)."""
+    style.plot_density_scatter(mids, lens, ax=ax, s=s, cmap="magma_r")
     ax.axhline(147, color="gray", lw=0.6, ls=":")
     ax.set_xlim(start1, end1)
     ax.set_ylim(0, max_len)
-    ax.set_ylabel("MNase\nfrag (bp)", fontsize=lab_fs)
+    ax.yaxis.set_label_position("right"); ax.yaxis.tick_right()
+    ax.set_yticks([0, 150, 300] if max_len >= 300 else [0, 150])
+    ax.set_ylabel("Frag length (bp)", fontsize=lab_fs)
     ax.tick_params(labelsize=tick_fs, labelbottom=False)
 
 
@@ -153,16 +164,36 @@ def draw_marks(ax, marks, color="black"):
 # --------------------------------------------------------------------------
 # composite
 # --------------------------------------------------------------------------
+DEFAULT_PANELS = ("genes", "mnase", "fibers", "pileup")
+PANEL_HEIGHTS = {"genes": 0.6, "mnase": 0.9, "pileup": 0.8}
+
+
+def parse_panels(spec) -> List[str]:
+    """'genes,mnase,fibers,pileup' -> list, top to bottom. Unknown names raise."""
+    items = [x.strip() for x in (spec.split(",") if isinstance(spec, str) else spec) if x.strip()]
+    bad = [x for x in items if x not in DEFAULT_PANELS]
+    if bad:
+        raise ValueError(f"unknown panel(s) {bad}; choose from {','.join(DEFAULT_PANELS)}")
+    return items
+
+
 def fiberplot(fibers: List[Fiber], region: Tuple[str, int, int], out_prefix: str,
-              title: str = "", sort: str = "start", seed: int = 0,
+              title: str = "", sort: str = "shuffle", seed: int = 0,
               mnase: Optional[pd.DataFrame] = None, marks: Sequence[int] = (),
-              genes: bool = True, pileup: bool = True, split_by_label: bool = True,
+              panels: Sequence[str] = DEFAULT_PANELS, split_by_label: bool = True,
               smooth: int = 31, width: float = 7.0, max_fiber_height: float = 7.0,
-              formats=("png", "pdf"), dpi: int = 300, threshold_note: str = ""):
-    """Draw and save the composite figure. Returns list of written paths."""
+              formats=("png", "pdf"), dpi: int = 300, threshold_note: str = "",
+              show_note: bool = False, gene_fontsize: float = 10):
+    """Draw and save the composite figure. Returns list of written paths.
+
+    panels: names drawn top to bottom, any subset/order of
+    genes, mnase, fibers (one panel per sample unless split_by_label=False),
+    pileup. The default (genes, mnase, fibers, pileup) is the lab layout;
+    mnase is skipped when no MNase data is given."""
     plt = style.setup_mpl()
     from matplotlib.gridspec import GridSpec
     chrom, s0, e0 = region
+    panels = parse_panels(panels)
 
     if split_by_label:
         labels = list(dict.fromkeys(f.label for f in fibers))
@@ -175,41 +206,44 @@ def fiberplot(fibers: List[Fiber], region: Tuple[str, int, int], out_prefix: str
     n_tot = max(1, sum(len(v) for v in groups.values()))
     fib_h = min(max_fiber_height, max(1.2, 0.012 * n_tot + 0.6 * len(labels)))
     rows, heights = [], []
-    if genes:
-        rows.append("genes"); heights.append(0.55)
-    if mnase is not None:
-        rows.append("mnase"); heights.append(0.9)
-    if pileup:
-        rows.append("pileup"); heights.append(0.8)
-    for lab in labels:
-        rows.append(("fib", lab))
-        heights.append(max(0.35, fib_h * len(groups[lab]) / n_tot))
+    for pn in panels:
+        if pn == "mnase" and mnase is None:
+            continue
+        if pn == "fibers":
+            for lab in labels:
+                rows.append(("fib", lab))
+                heights.append(max(0.35, fib_h * len(groups[lab]) / n_tot))
+        else:
+            rows.append(pn); heights.append(PANEL_HEIGHTS[pn])
+    if not rows:
+        raise ValueError("no panels to draw")
     fig = plt.figure(figsize=(width, sum(heights) + 0.7))
     gs = GridSpec(len(rows), 2, figure=fig, width_ratios=[0.025, 1], height_ratios=heights,
                   hspace=0.12, wspace=0.015)
-    main_axes = []
-    first_main = None
+    axes = []
+    data_ax = None
     for r, kind in enumerate(rows):
-        ax = fig.add_subplot(gs[r, 1], sharex=first_main) if first_main else fig.add_subplot(gs[r, 1])
-        if first_main is None and kind != "genes":
-            first_main = ax
+        ax = fig.add_subplot(gs[r, 1], sharex=data_ax) if data_ax else fig.add_subplot(gs[r, 1])
+        if data_ax is None and kind != "genes":
+            data_ax = ax
         if kind == "genes":
-            draw_gene_track(ax, chrom, s0 + 1, e0)
-            if title:
-                ax.set_title(title, fontsize=style.TITLE_FS, loc="left")
+            draw_gene_track(ax, chrom, s0 + 1, e0, fontsize=gene_fontsize)
+            draw_marks(ax, marks)
         elif kind == "mnase":
             draw_mnase(ax, mnase["mid"].values, mnase["length"].values, s0 + 1, e0)
             draw_marks(ax, marks)
+            axes.append(ax)
         elif kind == "pileup":
             for i, lab in enumerate(labels):
                 x, fr, _ = pileup_profile(groups[lab], s0, e0, smooth=smooth)
                 ax.plot(x, fr, lw=0.8, color=style.label_color(i), label=f"{lab} (n={len(groups[lab])})")
             ax.set_ylabel(f"m6A frac\n({smooth} bp)", fontsize=style.LAB_FS)
             ax.set_ylim(bottom=0)
-            ax.tick_params(labelsize=style.TICK_FS, labelbottom=False)
-            ax.legend(fontsize=style.LEG_FS, frameon=False, loc="upper right", ncol=min(4, len(labels)))
+            ax.tick_params(labelsize=style.TICK_FS)
+            if len(labels) > 1:
+                ax.legend(fontsize=style.LEG_FS, frameon=False, loc="upper right", ncol=min(4, len(labels)))
             draw_marks(ax, marks)
-            main_axes.append(ax)
+            axes.append(ax)
         else:
             lab = kind[1]
             fl = groups[lab]
@@ -218,15 +252,21 @@ def fiberplot(fibers: List[Fiber], region: Tuple[str, int, int], out_prefix: str
             draw_marks(ax, marks)
             side = fig.add_subplot(gs[r, 0])
             draw_strand_sidebar(side, fl, order, lab if split_by_label else "fibers")
-            ax.tick_params(labelsize=style.TICK_FS, labelbottom=(r == len(rows) - 1))
-            main_axes.append(ax)
-    ax = main_axes[-1] if main_axes else first_main
-    ax.set_xlabel(f"{chrom} position (bp)", fontsize=style.LAB_FS)
-    ax.set_xlim(s0 + 1, e0)
-    ax.ticklabel_format(axis="x", style="plain", useOffset=False)
-    note = f"m6A call: {threshold_note}" if threshold_note else ""
-    if note:
-        fig.text(0.99, 0.003, note, ha="right", va="bottom", fontsize=5, color="grey")
+            ax.tick_params(labelsize=style.TICK_FS)
+            axes.append(ax)
+        if r == 0 and title:
+            ax.set_title(title, fontsize=style.TITLE_FS, loc="left")
+    # x tick labels and axis label only on the bottom data panel
+    for ax in axes[:-1]:
+        ax.tick_params(labelbottom=False)
+    if axes:
+        ax = axes[-1]
+        ax.tick_params(labelbottom=True)
+        ax.set_xlabel(f"{chrom} position (bp)", fontsize=style.LAB_FS)
+        ax.set_xlim(s0 + 1, e0)
+        ax.ticklabel_format(axis="x", style="plain", useOffset=False)
+    if threshold_note and show_note:
+        fig.text(0.99, 0.003, f"m6A call: {threshold_note}", ha="right", va="bottom", fontsize=5, color="grey")
     paths = style.save(fig, out_prefix, formats, dpi)
     plt.close(fig)
     return paths

@@ -10,4 +10,11 @@
   - Read QC: N50 is computed on unclipped reads.
   - Read QC: secondary and supplementary records are no longer counted.
   - Coverage uses the genome size from the chrom sizes file.
+- Plot layout matches the lab figure scripts:
+  - Fiberplot panels top to bottom: genes, MNase, fibers, pileup. `--panels` picks and reorders them.
+  - Aggregate panels: MNase, fibers, methylation counts, methylated/possible A ratio (unsmoothed). `--panels` picks and reorders them.
+  - Gene track uses ylim (−60, 118) with minor ticks cleared. MNase y axis is on the right.
+  - Data panels have a full box. The QC whitegrid style no longer leaks into other figures.
+  - Default row order: fiberplot shuffle (seed 0), aggregate `meth_in_win`.
+  - No automatic titles or footers (`--title`, `--call-note`).
 - Reference: sacCer3 plus lambda (matches the lab BAM `@SQ` lines), SGD R64-1-1 GFF, Park 2014 TSS/PAS, Brogaard/Chereji nucleosome sites, Rossi Abf1/Reb1 sites.

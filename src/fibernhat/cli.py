@@ -79,6 +79,7 @@ def resolve_thresholds(a, bams, filt, label_by, cfg):
                    max_reads_per_label=cfg.get("threshold_estimate_reads", 20000))
     note = th.source if a.threshold_ml is not None else (
         th.source + ": " + ", ".join(f"{k} ML>={v.ml_meth}" for k, v in list(th.by_label.items())[:6]))
+    print(f"[fibernhat] m6A call: {note}", file=sys.stderr)
     return th, note
 
 
@@ -153,7 +154,6 @@ def cmd_fiberplot(a, cfg):
         a.region = f"{g['chrom']}:{max(1, g['tss'] - a.flank)}-{g['tss'] + a.flank}"
         if not a.mark:
             marks = [g["tss"]]
-        a.title = a.title or f"{g['name']} ({g['orf']}, {g['strand']} strand); dashed = {g['tss_source']} {g['tss']:,}"
         a.name = a.name or g["name"]
         print(f"[fibernhat] {g['name']}: {a.region}, TSS {g['tss']} ({g['tss_source']})", file=sys.stderr)
     if not a.region:
@@ -166,10 +166,14 @@ def cmd_fiberplot(a, cfg):
     mp = _mnase_path(a, cfg)
     mn = M.fragments(mp, *region, max_len=300) if mp else None
     name = a.name or a.region.replace(":", "_").replace(",", "")
-    paths = fiberplot(fibers, region, os.path.join(out, name), title=a.title or a.region,
-                      sort=a.sort, seed=a.seed, mnase=mn, marks=marks, genes=not a.no_genes,
-                      pileup=not a.no_pileup, split_by_label=not a.pool, smooth=a.smooth,
-                      width=a.width, formats=tuple(a.formats.split(",")), threshold_note=note)
+    panels = [x for x in a.panels.split(",")
+              if not ((x == "genes" and a.no_genes) or (x == "mnase" and a.no_mnase)
+                      or (x == "pileup" and a.no_pileup))]
+    paths = fiberplot(fibers, region, os.path.join(out, name), title=a.title or "",
+                      sort=a.sort, seed=a.seed, mnase=mn, marks=marks, panels=panels,
+                      split_by_label=not a.pool, smooth=a.smooth, width=a.width,
+                      formats=tuple(a.formats.split(",")), threshold_note=note,
+                      show_note=a.call_note)
     fiber_table(fibers).to_csv(os.path.join(out, name + "_fibers.tsv"), sep="\t", index=False,
                                float_format="%.4f")
     print("\n".join(paths))
@@ -201,10 +205,12 @@ def cmd_aggregate(a, cfg):
                                      float_format="%.5f")
     mp = _mnase_path(a, cfg)
     mn = M.fragments_around_sites(mp, sites, half, max_len=250) if mp else None
-    paths = aggregate_plot(sf, os.path.join(out, name), title=a.title or name, sort=a.sort,
+    paths = aggregate_plot(sf, os.path.join(out, name), title=a.title or "", sort=a.sort,
                            max_rows=a.max_rows, seed=a.seed, smooth_bp=a.smooth, mnase=mn,
-                           split_by_label=not a.pool, formats=tuple(a.formats.split(",")),
-                           xlabel=f"distance to {name} (bp)", threshold_note=note)
+                           split_by_label=not a.pool, panels=a.panels,
+                           formats=tuple(a.formats.split(",")),
+                           xlabel=f"distance to {name} (bp)", threshold_note=note,
+                           show_note=a.call_note)
     print("\n".join(paths))
 
 
@@ -230,7 +236,7 @@ def cmd_quintiles(a, cfg):
                                 float_format="%.5g")
     paths = plot_quintile_profiles(prof, summ, os.path.join(out, "quintile_profiles"),
                                    smooth_bp=a.smooth, formats=tuple(a.formats.split(",")),
-                                   threshold_note=note)
+                                   threshold_note=note, show_note=a.call_note)
     print(summ.to_string(index=False))
     print("\n".join(paths))
 
@@ -315,7 +321,11 @@ def main(argv=None):
                                   "marked automatically (Park 2014 TSS, else the start codon)")
     p.add_argument("--flank", type=int, default=1000, help="bp around the TSS for --gene (default 1000)")
     p.add_argument("-o", "--outdir"); p.add_argument("--name"); p.add_argument("--title")
-    p.add_argument("--sort", default="start", choices=["start", "shuffle", "meth", "length", "strand"])
+    p.add_argument("--sort", default="shuffle", choices=["shuffle", "start", "meth", "length", "strand"],
+                   help="fiber row order (default shuffle, seed --seed, as in the lab figures)")
+    p.add_argument("--panels", default="genes,mnase,fibers,pileup",
+                   help="panels top to bottom, any subset/order of genes,mnase,fibers,pileup "
+                        "(default genes,mnase,fibers,pileup; mnase skipped without an MNase BAM)")
     p.add_argument("--max-reads", type=int, help="random subsample (per region, all samples)")
     p.add_argument("--require-span", action="store_true", help="only reads spanning the whole region")
     p.add_argument("--pool", action="store_true", help="one fiber panel for all samples")
@@ -326,6 +336,7 @@ def main(argv=None):
     p.add_argument("--smooth", type=int, default=31, help="pileup box smoothing (bp)")
     p.add_argument("--width", type=float, default=7.0)
     p.add_argument("--seed", type=int, default=0); p.add_argument("--formats", default="png,pdf")
+    p.add_argument("--call-note", action="store_true", help="print the m6A cutoff used in a small footer")
     add_filter_args(p); add_label_args(p); add_threshold_args(p)
     p.set_defaults(func=cmd_fiberplot)
 
@@ -335,7 +346,11 @@ def main(argv=None):
                    help="dyad | tss | abf1 | reb1 | chereji | tf | tf:<TF> | path (TSV/BED)")
     p.add_argument("--half", type=int, help="half window (bp); default per site set")
     p.add_argument("-o", "--outdir"); p.add_argument("--name"); p.add_argument("--title")
-    p.add_argument("--sort", default="shuffle", choices=["shuffle", "meth_in_win", "meth_frac", "site", "none"])
+    p.add_argument("--sort", default="meth_in_win", choices=["meth_in_win", "shuffle", "meth_frac", "site", "none"],
+                   help="fiber row order (default meth_in_win: most methylated within +/-100 bp first)")
+    p.add_argument("--panels", default="mnase,fibers,counts,ratio",
+                   help="panels top to bottom, any subset/order of mnase,fibers,counts,ratio "
+                        "(counts = methylation pileup, ratio = methylated As / possible As)")
     p.add_argument("--max-rows", type=int, default=3000, help="fibers drawn per sample (profile uses all)")
     p.add_argument("--max-per-site", type=int, help="cap fibers per site")
     p.add_argument("--max-sites", type=int, help="random subset of sites")
@@ -345,8 +360,9 @@ def main(argv=None):
     p.add_argument("--no-orient", action="store_true", help="do not flip minus-strand sites")
     p.add_argument("--pool", action="store_true")
     p.add_argument("--mnase-bam"); p.add_argument("--no-mnase", action="store_true")
-    p.add_argument("--smooth", type=int, default=11)
+    p.add_argument("--smooth", type=int, default=1, help="rolling mean (bp) on counts/ratio; 1 = raw (original)")
     p.add_argument("--seed", type=int, default=0); p.add_argument("--formats", default="png,pdf")
+    p.add_argument("--call-note", action="store_true", help="print the m6A cutoff used in a small footer")
     add_filter_args(p); add_label_args(p); add_threshold_args(p)
     p.set_defaults(func=cmd_aggregate)
 
@@ -360,6 +376,7 @@ def main(argv=None):
     p.add_argument("--modkit"); p.add_argument("--threads", type=int, default=4)
     p.add_argument("--smooth", type=int, default=21)
     p.add_argument("--formats", default="png,pdf")
+    p.add_argument("--call-note", action="store_true", help="print the m6A cutoff used in a small footer")
     add_filter_args(p); add_label_args(p); add_threshold_args(p)
     p.set_defaults(func=cmd_quintiles)
 

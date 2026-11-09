@@ -41,3 +41,19 @@ def test_fiberplot_gene(tmp_path, bams):
     main(["fiberplot", "--bam", *bams, "--gene", "TEA1", "--flank", "500", "--threshold-ml", "192",
           "--no-mnase", "-o", str(tmp_path), "--formats", "png"])
     assert (tmp_path / "TEA1.png").exists()
+
+
+def test_panel_order(tmp_path, bams):
+    import pytest
+    from fibernhat.plot.fibers import parse_panels
+    assert parse_panels("genes,mnase,fibers,pileup") == ["genes", "mnase", "fibers", "pileup"]
+    with pytest.raises(ValueError):
+        parse_panels("genes,heatmap")
+    main(["fiberplot", "--bam", *bams, "--region", "chrII:277500-280000", "--threshold-ml", "192",
+          "--no-mnase", "--panels", "pileup,fibers,genes", "--pool", "--name", "reordered",
+          "-o", str(tmp_path), "--formats", "png"])
+    assert (tmp_path / "reordered.png").exists()
+    main(["aggregate", "--bam", *bams, "--sites", "tss", "--chrom", "chrI", "--half", "300",
+          "--no-mnase", "--threshold-ml", "192", "--panels", "ratio,fibers", "--name", "agg2",
+          "-o", str(tmp_path), "--formats", "png"])
+    assert (tmp_path / "agg2.png").exists()

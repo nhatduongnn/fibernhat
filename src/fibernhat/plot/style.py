@@ -20,9 +20,11 @@ def setup_mpl():
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
+    # Only font/export settings here. Spines and grids are left at matplotlib
+    # defaults (full box, no grid) as in the lab figure scripts; each plot sets
+    # its own exceptions locally so nothing leaks between figures.
     plt.rcParams.update({"pdf.fonttype": 42, "svg.fonttype": "none",
-                         "font.family": ["DejaVu Sans"], "axes.spines.top": False,
-                         "axes.spines.right": False})
+                         "font.family": ["DejaVu Sans"]})
     return plt
 
 

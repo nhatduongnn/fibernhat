@@ -25,11 +25,23 @@ def _spines(ax):
 
 
 def _plt():
-    plt = style.setup_mpl()
-    plt.style.use("seaborn-v0_8-whitegrid")
-    return plt
+    return style.setup_mpl()
 
 
+def _qc_style(fn):
+    """Apply the original whitegrid look to QC figures only. plt.style.use()
+    would change matplotlib globally and leak grids into later fiberplots."""
+    import functools
+
+    @functools.wraps(fn)
+    def wrapper(*a, **k):
+        import matplotlib.pyplot as plt
+        with plt.style.context("seaborn-v0_8-whitegrid"):
+            return fn(*a, **k)
+    return wrapper
+
+
+@_qc_style
 def plot_histogram(lengths, out_prefix, label, color, clip=10000, ymax=None,
                    log_x=False, formats=("png", "svg")):
     from scipy.stats import gaussian_kde
@@ -90,6 +102,7 @@ def _violin_box(ax, data, colors):
     return pos
 
 
+@_qc_style
 def plot_summary(groups: List[tuple], out_dir: str, genome_size: int, clip=10000,
                  formats=("png", "svg")):
     """groups = [(label, lengths, quals), ...]"""
@@ -139,6 +152,7 @@ def plot_summary(groups: List[tuple], out_dir: str, genome_size: int, clip=10000
     return paths
 
 
+@_qc_style
 def plot_cascade(casc, out_dir, formats=("png", "svg")):
     plt = _plt()
     labs = list(dict.fromkeys(casc.label))
