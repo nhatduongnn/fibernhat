@@ -41,22 +41,28 @@ def _qc_style(fn):
     return wrapper
 
 
+AUTO_BIN_MIN_READS = 20000
+
+
+def auto_bin_width(n_reads: int) -> int:
+    """10 bp bins (the original) for full runs; 100 bp when there are fewer
+    than 20k reads. With sparse 10 bp bins a base-weighted histogram shows
+    bars on the lines y = k * length (k = reads in the bin)."""
+    return 10 if n_reads >= AUTO_BIN_MIN_READS else 100
+
+
 @_qc_style
 def plot_histogram(lengths, out_prefix, label, color, clip=10000, ymax=None,
-                   log_x=False, formats=("png", "svg")):
-    from scipy.stats import gaussian_kde
+                   log_x=False, formats=("png", "svg"), bin_width="auto"):
     plt = _plt()
     L = np.asarray(lengths, float)
     L = L[L > 0]
     N50, med = n50(L), float(np.median(L)) if L.size else 0
     arr = L[L < clip]
     fig, ax = plt.subplots(figsize=(9, 5))
-    bins = np.arange(0, clip + 10, 10)
+    bw = auto_bin_width(L.size) if bin_width in (None, "auto") else int(bin_width)
+    bins = np.arange(0, clip + bw, bw)
     ax.hist(arr, bins=bins, weights=arr, color=color, alpha=0.65, edgecolor="none", label="Basepairs")
-    if arr.size > 2:
-        xs = np.linspace(arr.min(), clip, 600)
-        kde = gaussian_kde(arr, "scott")
-        ax.plot(xs, kde(xs) * arr.sum() * 10, color=color, lw=2, alpha=0.9, label="KDE")
     top = ymax or ax.get_ylim()[1]
     ax.axvline(N50, color="#333333", lw=1.6, ls="--")
     ax.axvline(med, color="#666666", lw=1.2, ls=":")
@@ -75,7 +81,7 @@ def plot_histogram(lengths, out_prefix, label, color, clip=10000, ymax=None,
         lambda x, _: f"{x / 1e6:.1f}M" if x >= 1e6 else f"{x / 1e3:.0f}k"))
     ax.set_xlabel("Read length (bp)", fontsize=FONT_LABEL)
     ax.set_ylabel("Total bases sequenced", fontsize=FONT_LABEL)
-    ax.set_title(f"Bases sequenced — {label}\n(N50/median on all reads; histogram clipped at {clip:,} bp)",
+    ax.set_title(f"Bases sequenced — {label}\n(N50/median on all reads; {bw} bp bins, clipped at {clip:,} bp)",
                  fontsize=FONT_TITLE - 4)
     ax.tick_params(labelsize=FONT_TICK)
     ax.legend(loc="upper right", frameon=False, fontsize=FONT_LEGEND)

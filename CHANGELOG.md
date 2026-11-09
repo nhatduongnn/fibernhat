@@ -8,6 +8,7 @@
   - modkit 0.6.1 `pileup` leaves out a few calls that `modkit extract` reports (59 of 1.4M positions on the test data were 1 lower), so it is not used.
 - Fixes compared with the old scripts:
   - Read QC: N50 is computed on unclipped reads.
+  - Read QC: KDE overlay removed (it was fitted to read counts but scaled as bases). New `--bin-width` (auto: 10 bp with ≥ 20k reads, else 100 bp).
   - Read QC: secondary and supplementary records are no longer counted.
   - Coverage uses the genome size from the chrom sizes file.
 - Plot layout matches the lab figure scripts:

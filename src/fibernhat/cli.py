@@ -120,7 +120,8 @@ def cmd_qc(a, cfg):
     for i, (lab, g) in enumerate(df.groupby("label", sort=False)):
         g2 = g if not a.pass_only else g[g.fail_reason == ""]
         PQ.plot_histogram(g2.read_len.values, os.path.join(out, f"{lab}_hist"), lab,
-                          PQ.style.label_color(i), clip=a.clip, ymax=a.hist_ymax, log_x=a.log_x, formats=fm)
+                          PQ.style.label_color(i), clip=a.clip, ymax=a.hist_ymax, log_x=a.log_x, formats=fm,
+                          bin_width=a.bin_width)
         groups.append((lab, g2.read_len.values, g2.mean_q.values))
     PQ.plot_summary(groups, out, gsize, clip=a.clip, formats=fm)
     PQ.plot_cascade(casc, out, formats=fm)
@@ -295,6 +296,9 @@ def main(argv=None):
     p.add_argument("-o", "--outdir")
     p.add_argument("--clip", type=int, default=10000, help="x-limit for histograms / violins (stats unclipped)")
     p.add_argument("--hist-ymax", type=float)
+    p.add_argument("--bin-width", default="auto",
+                   help="histogram bin width in bp, or 'auto' (default): 10 bp with >= 20k reads per sample, "
+                        "else 100 bp")
     p.add_argument("--log-x", action="store_true")
     p.add_argument("--genome-size", type=int, help="for coverage; default nuclear sacCer3 size")
     p.add_argument("--pass-only", action="store_true", help="plot only reads passing the filters")

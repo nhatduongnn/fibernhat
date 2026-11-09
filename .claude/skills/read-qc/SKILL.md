@@ -19,7 +19,7 @@ description: Plot read length and read quality QC (N50, histograms, violins, fil
 | `summary.tsv` | per sample: n_reads, total_bases, **N50**, median/mean length, median/mean Q, frac ≥ Q10, frac mapped, frac with MM tag, coverage, reads and coverage passing the filters |
 | `read_stats.tsv.gz` | one row per primary read: length, mean Q, MAPQ, ref span, `fail_reason` |
 | `filter_cascade.tsv/.png` | reads removed at each filter step (unmapped, no MM, chrM/lambda, rDNA, MAPQ<20, span<500, qs<10) |
-| `<label>_hist.png/.svg` | length histogram weighted by bases (10 bp bins, clipped at `--clip`), KDE, N50 and median lines |
+| `<label>_hist.png/.svg` | length histogram weighted by bases (bin width from `--bin-width`, clipped at `--clip`), N50 and median lines |
 | `summary_read_length.*`, `summary_quality.*` | violin+box per sample, with stats in the tick labels and a Q10 line |
 
 ## Notes and pitfalls
@@ -28,6 +28,8 @@ description: Plot read length and read quality QC (N50, histograms, violins, fil
 - Coverage uses the nuclear sacCer3 size (12.07 Mb), or `--genome-size`.
 - Sample labels come from `--label-by auto`: the `BC` tag (e.g. `barcode09`), otherwise `barcodeNN` in the file name, otherwise the file stem.
 - Secondary and supplementary records are skipped, so each read counts once.
+- **Bin width.** `--bin-width auto` (default) uses the original 10 bp bins when a sample has ≥ 20k reads and 100 bp bins below that. The histogram is weighted by bases, so a bin at length x holding k reads is k·x tall. With few reads most 10 bp bins hold 1–4 reads and the bars line up on straight lines y = x, 2x, 3x… through the origin. That is a sampling artefact, not a data problem. Set `--bin-width 10` to force the original bins.
+- No KDE curve. The old script's KDE was fitted to read counts but scaled as bases, so it didn't match the bars; it was removed here and in the original script.
 
 ## Provenance
 Port of `process_nanopore_sequencing/Nov_20_25/no_trim/plot_read_data.py` (same styling). The input was the `samtools view | awk` `*_read_len_qual` files from `DM1746/script_sup_model.sh`. The filter cascade follows `bg_investigation/nov03/analyze_nov03.py`.
