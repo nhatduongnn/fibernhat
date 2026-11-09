@@ -13,7 +13,7 @@
 - Plot layout matches the lab figure scripts:
   - Fiberplot panels top to bottom: genes, MNase, fibers, pileup. `--panels` picks and reorders them.
   - Aggregate panels: MNase, fibers, methylation counts, methylated/possible A ratio (unsmoothed). `--panels` picks and reorders them.
-  - Gene track uses ylim (−60, 118) with minor ticks cleared. MNase y axis is on the right.
+  - Gene track is framed by a box as in `Fiber_seq_plots.py` (`--no-gene-box` for the paper look), uses ylim (−60, 118) and has minor ticks cleared. MNase y axis is on the right.
   - Data panels have a full box. The QC whitegrid style no longer leaks into other figures.
   - Default row order: fiberplot shuffle (seed 0), aggregate `meth_in_win`.
   - No automatic titles or footers (`--title`, `--call-note`).

@@ -48,10 +48,12 @@ def order_fibers(fibers: List[Fiber], how: str = "shuffle", seed: int = 0,
 # panels
 # --------------------------------------------------------------------------
 def draw_gene_track(ax, chrom: str, start1: int, end1: int, fontsize: float = 10,
-                    ylim: Tuple[float, float] = (-60, 118)):
+                    ylim: Tuple[float, float] = (-60, 118), box: bool = True):
     """SGD ORFs + TSS/PAS for [start1, end1] (1-based). Returns False if the
-    chromosome has no annotation. Box off, minor ticks cleared and ylim
-    (-60, 118) as in fig2_panels.draw_gene_track / build_tea1_plots.py."""
+    chromosome has no annotation. box=True keeps the full frame around the
+    track, as in Fiber_seq_plots.plot_single_locus_fiber_plot (L399-409);
+    box=False matches the paper/Strahl figures (fig2_panels L169-170).
+    Minor ticks cleared and ylim (-60, 118) as in build_tea1_plots.py."""
     from ..annotation import chrom_str_to_int, make_orf_annotation_plotter
     ci = chrom_str_to_int(chrom)
     if ci is None:
@@ -72,7 +74,7 @@ def draw_gene_track(ax, chrom: str, start1: int, end1: int, fontsize: float = 10
     ax.set_xticks([]); ax.set_xticks([], minor=True)
     ax.set_yticks([]); ax.set_yticks([], minor=True)
     for sp in ax.spines.values():
-        sp.set_visible(False)
+        sp.set_visible(box)
     return True
 
 
@@ -183,7 +185,7 @@ def fiberplot(fibers: List[Fiber], region: Tuple[str, int, int], out_prefix: str
               panels: Sequence[str] = DEFAULT_PANELS, split_by_label: bool = True,
               smooth: int = 31, width: float = 7.0, max_fiber_height: float = 7.0,
               formats=("png", "pdf"), dpi: int = 300, threshold_note: str = "",
-              show_note: bool = False, gene_fontsize: float = 10):
+              show_note: bool = False, gene_fontsize: float = 10, gene_box: bool = True):
     """Draw and save the composite figure. Returns list of written paths.
 
     panels: names drawn top to bottom, any subset/order of
@@ -227,7 +229,7 @@ def fiberplot(fibers: List[Fiber], region: Tuple[str, int, int], out_prefix: str
         if data_ax is None and kind != "genes":
             data_ax = ax
         if kind == "genes":
-            draw_gene_track(ax, chrom, s0 + 1, e0, fontsize=gene_fontsize)
+            draw_gene_track(ax, chrom, s0 + 1, e0, fontsize=gene_fontsize, box=gene_box)
             draw_marks(ax, marks)
         elif kind == "mnase":
             draw_mnase(ax, mnase["mid"].values, mnase["length"].values, s0 + 1, e0)

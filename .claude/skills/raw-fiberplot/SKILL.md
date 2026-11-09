@@ -13,12 +13,12 @@ description: Plot raw single-molecule fiber-seq (m6A) fiberplots of a genomic re
     --mark 278982 --title "GAL10-GAL1" -o outputs/fiberplots
 # options: --panels genes,mnase,fibers,pileup (any subset, any order, top to bottom)
 #          --sort shuffle|start|meth|length|strand  --max-reads 300  --require-span
-#          --pool (one fiber panel)  --no-mnase  --no-genes  --no-pileup  --smooth 31  --call-note
+#          --pool (one fiber panel)  --no-mnase  --no-genes  --no-pileup  --smooth 31  --call-note  --no-gene-box
 #          --threshold-ml 192 (paper figures)  --thresholds thr.tsv
 ```
 
 ## Figure, top to bottom (default `--panels genes,mnase,fibers,pileup`, the lab layout)
-1. **Gene track:** SGD R64-1-1 ORFs (Verified and Uncharacterized; Dubious hidden) with Park 2014 TSS/PAS arrows. Watson genes are blue, Crick genes red. No box, ylim (−60, 118), as in `fig2_panels`/`build_tea1_plots.py`.
+1. **Gene track:** SGD R64-1-1 ORFs (Verified and Uncharacterized; Dubious hidden) with Park 2014 TSS/PAS arrows. Watson genes are blue, Crick genes red. Framed by a full box as in `Fiber_seq_plots.plot_single_locus_fiber_plot`; `--no-gene-box` gives the frameless paper/Strahl look. ylim (−60, 118) as in `build_tea1_plots.py`.
 2. **MNase V-plot** (only if `mnase_bam` is set in `config/site.yaml` or `--mnase-bam` is given): fragment midpoint vs length, coloured by 2-D KDE, with a dotted line at 147 bp. Y axis on the right (0/150/300).
 3. **Fibers:** one panel per sample (`--pool` for one panel, as in the paper figures). Rows are shuffled with a fixed seed. Each read is a grey line with a steelblue dot per methylated A. The left sidebar shows strand (+ navy, − dark red).
 4. **m6A pileup:** per sample, methylated/called A per bp with a 31 bp box smoothing. Positions covered by fewer than 5 reads are hidden. This panel is a fibernhat addition (not in the paper locus figures); drop it with `--no-pileup`.

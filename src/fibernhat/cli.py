@@ -173,7 +173,7 @@ def cmd_fiberplot(a, cfg):
                       sort=a.sort, seed=a.seed, mnase=mn, marks=marks, panels=panels,
                       split_by_label=not a.pool, smooth=a.smooth, width=a.width,
                       formats=tuple(a.formats.split(",")), threshold_note=note,
-                      show_note=a.call_note)
+                      show_note=a.call_note, gene_box=not a.no_gene_box)
     fiber_table(fibers).to_csv(os.path.join(out, name + "_fibers.tsv"), sep="\t", index=False,
                                float_format="%.4f")
     print("\n".join(paths))
@@ -333,6 +333,9 @@ def main(argv=None):
     p.add_argument("--mnase-bam", help="paired-end MNase BAM (default: config mnase_bam)")
     p.add_argument("--no-mnase", action="store_true"); p.add_argument("--no-genes", action="store_true")
     p.add_argument("--no-pileup", action="store_true")
+    p.add_argument("--no-gene-box", action="store_true",
+                   help="no frame around the gene track (paper-figure style); default keeps the frame "
+                        "as in Fiber_seq_plots.py")
     p.add_argument("--smooth", type=int, default=31, help="pileup box smoothing (bp)")
     p.add_argument("--width", type=float, default=7.0)
     p.add_argument("--seed", type=int, default=0); p.add_argument("--formats", default="png,pdf")
