@@ -1,0 +1,17 @@
+# Copy to config/site.yaml (gitignored) and edit for your cluster.
+# Everything here is optional.
+
+# Paired-end MNase-seq BAM for the MNase track (fiberplot / aggregate).
+# Lab default (Duke CS cluster): DM498 cadmium t0, 1.1 GB, not in git.
+mnase_bam: /usr/xtmp/nd141/projects/sequence_alignment/data/fastq/cadmium_time0/DM498/DM498_sacCer3_m1_2020-05-20-17-18.bam
+
+tools:
+  # modkit is optional (only for --engine modkit and `fibernhat parity`).
+  # Tested/pinned: 0.4.4 (exact parity). 0.6.1 drops ~0.004% of calls in pileup.
+  modkit: /usr/xtmp/nd141/programs/dist_modkit_v0.4.4_7cf558c/modkit
+  dorado: /usr/xtmp/nd141/programs/dorado/dorado-2.0.1-linux-x64/bin/dorado
+  samtools: samtools
+
+slurm:
+  partition: compsci
+  gpu_gres: "gpu:a5000:1"

@@ -1,0 +1,13 @@
+# Per-barcode m6A call thresholds (2026-11-04). modkit 0.2.6 sample-probs, 10th percentile, ALL reads of each
+# barcode (-f 1.0) of filtered_refit_nordna/filtered.bam split by RG. thr = (ml_meth+0.5)/256 (modkit bin).
+# Call rule: meth if ML >= ml_meth; canonical if ML <= ml_canon or A unlisted (A+a.); else no-call.
+# fulldata_* = cross-check from singlefiber/ml_histograms.py (aligned on-target A's only), not used.
+# Script: /usr/project/xtmp/nd141/filtered_refit_nordna_bcthr/scripts/job1_split_sample.sh
+barcode	rg	thr	ml_meth	ml_canon	n_reads	fulldata_thr	fulldata_ml_meth
+Mar20_bc01	3ffdd574fd4145ab4a8dc7b33935b88ebfe03a5c_dna_r10.4.1_e8.2_400bps_sup@v5.0.0	0.8222656	210	45	117581	0.845703	216
+Jun25_bc21	17fcb8e6bc729434e1fdaff94773a0ed3140208b_dna_r10.4.1_e8.2_400bps_sup@v5.0.0	0.8027344	205	50	75887	0.818359	209
+Jun25_bc22	17fcb8e6bc729434e1fdaff94773a0ed3140208b_dna_r10.4.1_e8.2_400bps_sup@v5.0.0-4908647B	0.8105469	207	48	89654	0.826172	211
+Jun25_bc23	17fcb8e6bc729434e1fdaff94773a0ed3140208b_dna_r10.4.1_e8.2_400bps_sup@v5.0.0-5E498CC1	0.8066406	206	49	69063	0.822266	210
+Jun25_bc24	17fcb8e6bc729434e1fdaff94773a0ed3140208b_dna_r10.4.1_e8.2_400bps_sup@v5.0.0-6EFDB6F6	0.8066406	206	49	93105	0.822266	210
+May07_bc03	7499519127370e847160e7df34d4edd145921c58_dna_r10.4.1_e8.2_400bps_sup@v5.0.0	0.8261719	211	44	103086	0.837891	214
+May07_bc04	7499519127370e847160e7df34d4edd145921c58_dna_r10.4.1_e8.2_400bps_sup@v5.0.0-54557EED	0.8300781	212	43	119126	0.845703	216

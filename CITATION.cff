@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+message: "If you use fibernhat, please cite it as below."
+title: "fibernhat: BAM-first analysis and plotting of nanopore Fiber-seq (m6A) data"
+version: 0.1.0
+date-released: 2026-11-08
+authors:
+  - family-names: Duong
+    given-names: Nhat
+license: MIT

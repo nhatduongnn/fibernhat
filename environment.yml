@@ -1,0 +1,11 @@
+# conda alternative to `uv venv` (pyproject.toml is the source of truth).
+#   conda env create -f environment.yml && conda activate fibernhat
+name: fibernhat
+channels: [conda-forge, bioconda]
+dependencies:
+  - python=3.11
+  - samtools>=1.17
+  - ont-modkit=0.4.4      # optional engine; 0.4.4 = exact parity with the pysam engine
+  - pip
+  - pip:
+      - -e .[all]

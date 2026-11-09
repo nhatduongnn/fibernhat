@@ -1,0 +1,12 @@
+# fibernhat defaults (committed). Override per machine in config/site.yaml.
+label_by: auto                 # auto | file | bc | rg | rg+bc | none
+threshold_estimate_reads: 20000  # reads/sample when thresholds are estimated on the fly
+
+# Read filter = lab "filtnordna" cascade (roboNhat 2026-11)
+filters:
+  min_mapq: 20
+  min_span: 500                # reference span (bp)
+  min_qs: 10                   # dorado mean read Q (qs tag); null disables
+  exclude_chroms: [chrM, chrLambda]
+  exclude_regions: ["chrXII:451418-468929"]   # rDNA
+  require_mm: true
